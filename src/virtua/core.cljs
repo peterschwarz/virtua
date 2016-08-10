@@ -1,6 +1,7 @@
 (ns virtua.core
    (:require [virtua.dom :as dom]
-             [cljs.pprint :refer [pprint]]
+             #_[cljs.pprint :refer [pprint]]
+             [clojure.string :refer [join]]
              [clojure.data :refer [diff]]))
 
 
@@ -28,6 +29,36 @@
       :default
       (dom/create-text (str node)))))
 
+(defn- merge-attr
+  "Merges attributes, with approprate joining of mergeable attributes.
+  For example, two maps that define :class will merge their value.
+
+  (let [a {:class \"foo\"}
+        b {:class \"bar\"}]
+    (merge-attr a b))
+
+  => {:class \"foo bar\"}
+  "
+  [a b]
+  (let [class-a (:class a)
+        class-b (:class b)
+        classes (cond
+                  (and class-a class-b) (str class-a " " class-b)
+                  class-a class-a
+                  class-b class-b)]
+    (cond-> (merge (dissoc a :class) (dissoc b :class))
+      classes (assoc :class classes))))
+
+(defn- extract-keyword-attr
+  "Extracts hiccup-style attributes, namely css class and element ids."
+  [node-type]
+  (let [[element & classes] (.split (name node-type) ".")
+        [etype id] (.split element "#")]
+    [(keyword etype)
+     (cond-> nil
+       (not (empty? classes)) (assoc :class (join " " classes))
+       (not (empty? id)) (assoc :id id))]))
+
 (defn apply-state [node state]
   (when node
     (cond
@@ -38,9 +69,13 @@
 
       (vector? node)
       (let [[node-type & children] node
-            attr (if (map? (first children)) (first children))
-            children (if attr (rest children) children)]
-        (cond-> {:tag node-type}
+            [tag tag-attr] (extract-keyword-attr node-type)
+            has-attr? (map? (first children))
+            attr (if has-attr?
+                   (merge-attr tag-attr (first children))
+                   tag-attr)
+            children (if has-attr? (rest children) children)]
+        (cond-> {:tag tag}
 
           attr
           (assoc :attributes attr)

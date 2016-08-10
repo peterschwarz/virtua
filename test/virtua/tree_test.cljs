@@ -30,6 +30,12 @@
       {:tag :div :children [{:tag :span
                              :children ["Foo"]}]}
 
+      [:div [:p "one"] [:p "two"] ] {}
+      {:tag :div :children [{:tag :p
+                             :children ["one"]}
+                            {:tag :p
+                             :children ["two"]}]}
+
       ; test lazy sequences
       [:div (range 1 4)] {}
       {:tag :div :children [1 2 3]}
@@ -44,9 +50,32 @@
        :attributes {:class "foo"}
        :children ["Test"]}
 
-      ; Test nil removals
-      ;[:div (fn [s] (:text s))] {}
-      ;{:tag :div :children []}
+      ; test hiccup-like classes
+      [:div.foo] {}
+      {:tag :div
+       :attributes {:class "foo"}}
 
+      [:div.foo.bar] {}
+      {:tag :div
+       :attributes {:class "foo bar"}}
+
+      [:div#foo] {}
+      {:tag :div
+       :attributes {:id "foo"}}
+
+      [:div#foo.bar] {}
+      {:tag :div
+       :attributes {:id "foo" :class "bar"}}
+
+      ; hiccup style with merge of params
+      [:div.foo {:class "bar"}] {}
+      {:tag :div
+       :attributes {:class "foo bar"}}
+
+      ; Preservs content
+      [:div.foo "Content"] {}
+      {:tag :div
+       :attributes {:class "foo"}
+       :children ["Content"]}
 
       )))

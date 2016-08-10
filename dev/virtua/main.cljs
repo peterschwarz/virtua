@@ -9,13 +9,15 @@
 (defonce app-state (atom {:text "Hello world!"}))
 
 (defn a-component [state]
-  [:div
-   [:p "I'm a sub componnet"]
+  [:div.row
+   [:p "I'm a sub component"]
    [:p "My state of interest: " (:text state)]])
 
 (v/attach!
   (fn [state]
-    [:div {:class "container"} "Hello"
+    [:div {:class "container"}
+     [:h1 "Hello, Virtua"]
+     [:p "Hello there, we're using Virtua to render this page."]
      a-component
      [:ul
       (map (fn [i] [:li i]) (:list state))]])
