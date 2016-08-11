@@ -7,6 +7,7 @@
             [goog.dom :as gdom]
             ; add tests after
             virtua.core-test
+            virtua.event-test
             virtua.tree-test))
 
 (enable-console-print!)
@@ -19,6 +20,7 @@
   (run-tests
     ; add tests to run here
     'virtua.core-test
+    'virtua.event-test
     'virtua.tree-test))
 
 (defn color-favicon-data-url [color]

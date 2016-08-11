@@ -1,5 +1,6 @@
 (ns virtua.core
    (:require [virtua.dom :as dom]
+             [virtua.events :as evts]
              #_[cljs.pprint :refer [pprint]]
              [clojure.string :refer [join]]
              [clojure.data :refer [diff]]))
@@ -22,6 +23,7 @@
       (let [{:keys [tag attributes children]} node
             el (dom/create (name tag))]
         (dom/set-props el attributes)
+        (evts/configure-event-handlers el attributes)
         (->> children
              (map create-element)
              (apply dom/append el)))

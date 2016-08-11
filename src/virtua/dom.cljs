@@ -4,7 +4,7 @@
 
 (defn set-props [el m]
   (doseq [[attr v] m]
-    (when v
+    (when (and v (not= "on-" (-> (name attr) (subs 0 3))))
       (.setAttribute el (name attr) (str v))))
   el)
 

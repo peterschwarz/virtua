@@ -6,21 +6,27 @@
 
 ;; define your app data so that it doesn't get over-written on reload
 
-(defonce app-state (atom {:text "Hello world!"}))
+(defonce app-state (atom {:content "Hello world!"}))
 
 (defn a-component [state]
   [:div.row
    [:p "I'm a sub component"]
-   [:p "My state of interest: " (:text state)]])
+   [:p "My state of interest: " (:content state)]])
 
 (v/attach!
   (fn [state]
-    [:div {:class "container"}
+    [:div.container
      [:h1 "Hello, Virtua"]
      [:p "Hello there, we're using Virtua to render this page."]
      a-component
      [:ul
-      (map (fn [i] [:li i]) (:list state))]])
+      (map (fn [i] [:li i]) (:list state))]
+     [:div.row
+      [:div.col-xs-1 (get state :count 0)]
+      [:div.col-xs-1
+       [:button.btn.btn-default
+        {:on-click #(swap! app-state update-in [:count] inc)}
+        "Count!" ]]]])
   app-state
   (. js/document (getElementById "app")))
 
