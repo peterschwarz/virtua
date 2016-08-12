@@ -5,13 +5,17 @@
             [virtua.test-utils :refer-macros [wait with-container]]
             [goog.dom :as gdom]))
 
-(defn text [el]
+(defn text-content [el]
   (when el
     (gdom/getTextContent el)))
 
 (defn tag [el]
   (when el
-  (.. el -tagName toLowerCase)))
+    (.. el -tagName toLowerCase)))
+
+(defn css-class [el]
+  (when el
+    (.. el -className)))
 
 (deftest test-render-single-element
   (testing "rendering a simple element"
@@ -20,7 +24,7 @@
       (is (= 1 (child-count el)))
       (is (= "div" (tag (child-at el 0))))
       (is (= "hello" (-> (child-at el 0)
-                         text))))))
+                         text-content))))))
 
 (deftest test-render-nested-elements
   (testing "rendering nested elements"
@@ -39,10 +43,10 @@
 
         (is (= "paragraph1"
                (-> (child-at div 0)
-                   text)))
+                   text-content)))
         (is (= "paragraph2"
                (-> (child-at div 1)
-                   text)))))))
+                   text-content)))))))
 
 (deftest test-render-with-fn
   (testing "rendering a function"
@@ -60,7 +64,7 @@
 
         (is (= "paragraph1"
                (-> (child-at div 0)
-                   text)))))))
+                   text-content)))))))
 
 (deftest test-render-with-fn-using-state
   (testing "rendering a function using the state"
@@ -74,7 +78,7 @@
       (is (= "div" (tag (child-at el 0))))
       (is (= "Test Text"
              (-> (child-at el 0)
-                 text))))))
+                 text-content))))))
 
 (deftest test-render-with-nested-fn
   (testing "rendering a function nested in the tree"
@@ -92,7 +96,7 @@
           (is (= "div" (-> (child-at div 0) tag)))
           (is (= "Component Text"
                  (-> (child-at div 0)
-                     text))))))))
+                     text-content))))))))
 
 (deftest test-render-with-state-updates
   (let [done identity] ; async done
@@ -108,13 +112,13 @@
           (is (= "div" (tag (child-at el 0))))
           (is (= "Test Text"
                  (-> (child-at el 0)
-                     text)))
+                     text-content)))
 
           (swap! app-state assoc :text "Changed Text")
           (do ;wait
             (is (= "Changed Text"
                    (-> (child-at el 0)
-                       text)))
+                       text-content)))
             (done)))))))
 
 (deftest test-render-with-state-updates-additive
@@ -135,17 +139,17 @@
             (is (= 1 (child-count ul)))
             (is (= "always shown"
                    (-> (child-at ul 0)
-                       text)))
+                       text-content)))
 
             (swap! app-state assoc :show-it? true)
             (do; wait
               (is (= 2 (child-count ul)))
               (is (= "always shown"
                      (-> (child-at ul 0)
-                         text)))
+                         text-content)))
               (is (= "Now showing: additive"
                      (-> (child-at ul 1)
-                         text)))
+                         text-content)))
               (done))))))))
 
 (deftest test-render-with-state-updates-reductive
@@ -166,46 +170,62 @@
             (is (=  (child-count ul)))
             (is (= "always shown"
                    (-> (child-at ul 0)
-                       text)))
+                       text-content)))
             (is (= "Now showing: reductive"
                    (-> (child-at ul 1)
-                       text)))
+                       text-content)))
 
             (swap! app-state assoc :show-it? false)
             (do; wait
               (is (= 1 (child-count ul)))
               (is (= "always shown"
                      (-> (child-at ul 0)
-                         text)))
+                         text-content)))
               (done))))))))
 
 (deftest test-render-with-state-updates-insertive
-  (let [done identity] ;async done
-    (testing "rendering a function using a insertive state change"
-      (with-container el
-        (let [app-state (atom {:show-it? false})]
-          (v/attach!
-            (fn [state]
-              [:ul
-               (when (:show-it? state) [:li "Now showing: insertive"])
-               [:li "always shown"]])
-            app-state
-            el)
+  (testing "rendering a function using a insertive state change"
+    (with-container el
+      (let [app-state (atom {:show-it? false})]
+        (v/attach!
+          (fn [state]
+            [:ul
+             (when (:show-it? state) [:li "Now showing: insertive"])
+             [:li "always shown"]])
+          app-state
+          el)
 
-          (is (= 1 (child-count el)))
-          (let [ul (child-at el 0)]
-            (is (= 1 (child-count ul)))
-            (is (= "always shown"
-                   (-> (child-at ul 0)
-                       text)))
+        (is (= 1 (child-count el)))
+        (let [ul (child-at el 0)]
+          (is (= 1 (child-count ul)))
+          (is (= "always shown"
+                 (-> (child-at ul 0)
+                     text-content)))
 
-            (swap! app-state assoc :show-it? true)
-            (do; wait
-              (is (= 2 (child-count ul)))
-              (is (= "Now showing: insertive"
-                     (-> (child-at ul 0)
-                         text)))
-              (is (= "always shown"
-                     (-> (child-at ul 1)
-                         text)))
-              (done))))))))
+          (swap! app-state assoc :show-it? true)
+          (is (= 2 (child-count ul)))
+          (is (= "Now showing: insertive"
+                 (-> (child-at ul 0)
+                     text-content)))
+          (is (= "always shown"
+                 (-> (child-at ul 1)
+                     text-content))))))))
+
+(deftest test-render-with-state-updates-attribute-change
+  (testing "rendering a change in attributes on a state change"
+    (with-container el
+      (let [app-state (atom {:classname "text-success"})]
+        (v/attach!
+          (fn [state]
+            [:p {:class (:classname state)} "Text"])
+          app-state
+          el)
+        (is (= 1 (child-count el)))
+        (let [p (child-at el 0)]
+          (is (= "text-success" (css-class p)))
+          (is (= "Text" (text-content p)))
+
+          (swap! app-state assoc :classname "text-danger")
+
+          (is (= "text-danger" (css-class p)))
+          (is (= "Text" (text-content p))))))))

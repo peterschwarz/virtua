@@ -1,16 +1,26 @@
 (ns virtua.dom
-  (:require [goog.dom :as gdom])
+  (:require [goog.dom :as gdom]
+            #_[cljs.pprint :refer [pprint]])
   (:refer-clojure :exclude [remove replace]))
+
+(defn- event-handler? [k]
+  (= "on-" (-> (name k) (subs 0 3))))
 
 (defn set-props [el m]
   (doseq [[attr v] m]
-    (when (and v (not= "on-" (-> (name attr) (subs 0 3))))
+    (when (and v (not (event-handler? attr)))
       (.setAttribute el (name attr) (str v))))
   el)
 
-(defn update-props [el remove-props add-props])
+(defn remove-props [el m]
+  (doseq [attr (cljs.core/remove event-handler? (keys m))]
+    (.removeAttribute el (name attr)))
+  el)
 
-(defn remove-props [el])
+(defn update-props [el to-remove to-add]
+  (-> el
+      (remove-props to-remove)
+      (set-props to-add)))
 
 (defn node-list-seq [node-list]
   (when node-list

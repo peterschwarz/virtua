@@ -100,6 +100,11 @@
     (or (not= (:tag left) (:tag right))
         (and (primitive? left) (not= left right)))))
 
+(defn- attr-changed? [left right]
+  (and left right
+       (map? left) (map? right)
+       (not= (:attributes left) (:attributes right))))
+
 (defn- update-elements
   [el left right index]
   (cond
@@ -117,10 +122,15 @@
     (:children right)
     (doseq [i (range (max (count (:children left))
                           (count (:children right))))]
-      (update-elements (dom/child-at el index)
-                       (get-in left [:children i])
-                       (get-in right [:children i])
-                       i))))
+      (update-elements
+        (dom/child-at el index)
+        (get-in left [:children i])
+        (get-in right [:children i])
+        i)))
+
+  (when (attr-changed? left right)
+    (let [[remove-attrs add-attrs _] (diff (:attributes left) (:attributes right))]
+      (dom/update-props (dom/child-at el index) remove-attrs add-attrs))))
 
 (defn update-tree [el node old-state new-state]
   (let [before (apply-state node old-state)
