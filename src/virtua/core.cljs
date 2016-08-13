@@ -129,8 +129,10 @@
         i)))
 
   (when (attr-changed? left right)
-    (let [[remove-attrs add-attrs _] (diff (:attributes left) (:attributes right))]
-      (dom/update-props (dom/child-at el index) remove-attrs add-attrs))))
+    (let [[remove-attrs add-attrs _] (diff (:attributes left) (:attributes right))
+          child (dom/child-at el index)]
+      (dom/update-props child  remove-attrs add-attrs)
+      (evts/update-event-handlers child remove-attrs add-attrs))))
 
 (defn update-tree [el node old-state new-state]
   (let [before (apply-state node old-state)

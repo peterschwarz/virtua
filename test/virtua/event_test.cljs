@@ -39,3 +39,22 @@
         el)
       (change! (gdom/getRequiredElement "test") "changed!"))
     (is (= "changed!" @new-value))))
+
+(deftest test-update-change-handler
+  (let [clicked-value (atom 0)
+        app-state (atom {:click-fn #(swap! clicked-value inc)})]
+    (with-container el
+      (v/attach!
+        (fn [state]
+          [:button {:id "btn"
+                    :on-click (:click-fn state)}])
+        app-state
+        el)
+
+      (click! (gdom/getRequiredElement "btn"))
+      (is (= 1 @clicked-value))
+
+      (swap! app-state assoc :click-fn #(swap! clicked-value dec))
+
+      (click! (gdom/getRequiredElement "btn"))
+      (is (= 0 @clicked-value)))))

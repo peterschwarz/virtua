@@ -1,15 +1,21 @@
 (ns virtua.dom
   (:require [goog.dom :as gdom]
+            [goog.object :as obj]
             #_[cljs.pprint :refer [pprint]])
   (:refer-clojure :exclude [remove replace]))
 
 (defn- event-handler? [k]
   (= "on-" (-> (name k) (subs 0 3))))
 
+(defn set-attribute [el k v]
+  (.setAttribute el (name k) v)
+  (when (boolean? v)
+    (obj/set el (name k) v)))
+
 (defn set-props [el m]
   (doseq [[attr v] m]
     (when (and v (not (event-handler? attr)))
-      (.setAttribute el (name attr) (str v))))
+      (set-attribute el attr v)))
   el)
 
 (defn remove-props [el m]

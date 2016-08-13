@@ -1,5 +1,6 @@
 (ns virtua.events
   (:require [goog.dom :as gdom]
+            [goog.object :as obj]
             [goog.events :as evt])
   (:import [goog.events EventType]))
 
@@ -19,10 +20,27 @@
    ; TODO: More
    })
 
+(defrecord Handler [key handler])
+
 (defn configure-event-handlers
   "Configures event handlers for an object"
   [el attributes]
-  (doseq [[event handler] attributes]
+  (doseq [[event handler-fn] attributes]
     (when (types event)
-      (evt/listen el (types event) handler))))
+      (let [handler-key (evt/listen el (types event) handler-fn)]
+        (obj/set el (name event) (Handler. handler-key handler-fn))))))
 
+
+(defn remove-event-handlers
+  [el attributes-to-remove]
+  (doseq [event (->> (keys attributes-to-remove)
+                           (filter types)
+                           (map name))]
+    (when-let [handler-info (obj/get el event)]
+      (evt/unlistenByKey (.-key handler-info))
+      (obj/remove el event))))
+
+(defn update-event-handlers
+  [el attributes-to-remove attributes-to-add]
+  (remove-event-handlers el attributes-to-remove)
+  (configure-event-handlers el attributes-to-add))
