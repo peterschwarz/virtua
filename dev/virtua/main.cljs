@@ -1,4 +1,4 @@
-(ns virtua.main
+(ns ^:figwheel-hooks virtua.main
   (:require [virtua.core :as v]))
 
 (enable-console-print!)
