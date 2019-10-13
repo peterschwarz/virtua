@@ -1,0 +1,8 @@
+^{:watch-dirs ["src" "dev" "test"]
+  :css-dirs ["resources/public/css"]
+  :auto-testing true}
+{:main virtua.main
+ :asset-path "/js/compiled/out"
+ :output-to "resources/public/js/compiled/virtua.js"
+ :output-dir "resources/public/js/compiled/out"
+ :source-map-timestamp true  }

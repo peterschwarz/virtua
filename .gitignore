@@ -10,6 +10,8 @@ pom.xml
 .repl
 .nrepl-port
 figwheel_server.log
+.cpcache/
+.rebel_readline_history
 
 # Build artifacts
 
