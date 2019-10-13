@@ -3,13 +3,17 @@
              [virtua.events :as evts]
              #_[cljs.pprint :refer [pprint]]
              [clojure.string :refer [join]]
-             [clojure.data :refer [diff]]))
+             [clojure.data :refer [diff]])
+   (:import [goog.ui IdGenerator]))
 
 
 (defn primitive? [x]
   (or (string? x)
       (number? x)
       (= (type x) (type true))))
+
+(defn unique-id []
+  (.. IdGenerator getInstance getNextUniqueId))
 
 (defn create-element
   [node]
@@ -22,6 +26,8 @@
       (map? node)
       (let [{:keys [tag attributes children]} node
             el (dom/create (name tag))]
+        (when-not (:id attributes)
+          (dom/set-attribute el "id" (unique-id)))
         (dom/set-props el attributes)
         (evts/configure-event-handlers el attributes)
         (->> children
