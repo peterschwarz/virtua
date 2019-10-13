@@ -1,2 +1,21 @@
 /* some style */
+#counter {
+    display: grid;
+    grid-gap: 1em;
+    grid-template-columns: 1em fit-content(50%) auto;
+}
 
+#counter #count {
+    grid-column: 1;
+    grid-row: 1;
+}
+
+#counter #count-button {
+    grid-column: 2;
+    grid-row: 1;
+}
+
+#counter #count-enabled {
+    grid-column: 3;
+    grid-row: 1;
+}
