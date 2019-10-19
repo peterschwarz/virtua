@@ -94,7 +94,7 @@
   "Creates an HTML element of the given tag. Tag may be a string, a symbol or a
   keyword."
   [tag]
-  (gdom/createDom tag))
+  (gdom/createDom (name tag)))
 
 (defn remove [el]
   (when el

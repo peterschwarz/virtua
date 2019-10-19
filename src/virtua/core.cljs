@@ -24,7 +24,7 @@
 
       (map? node)
       (let [{:keys [tag attributes children]} node
-            el (dom/create (name tag))]
+            el (dom/create tag)]
         (when-not (:id attributes)
           (dom/set-attribute el "id" (unique-id)))
         (dom/set-props el attributes)
