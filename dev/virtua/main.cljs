@@ -3,14 +3,13 @@
 
 (enable-console-print!)
 
-
 ;; define your app data so that it doesn't get over-written on reload
-
 (defonce app-state (atom {:content "Hello world!" :checked? true}))
 
 (defn a-component [state]
   [:section#sub-component
-   [:p "I'm a sub component"]
+   [:p "I'm a sub component.  You can modify the following state by setting the value "
+    [:code ":content"] " in the " [:code "app-state"] " atom from the REPL."]
    [:p "My state of interest: " (:content state)]])
 
 (v/attach!
@@ -48,8 +47,8 @@
   (. js/document (getElementById "app")))
 
 
-(defn on-js-reload []
+(defn ^:after-load on-js-reload []
   ;; optionally touch your app-state to force rerendering depending on
   ;; your application
-  ;; (swap! app-state update-in [:__figwheel_counter] inc)
+  (println "src updated")
 )
