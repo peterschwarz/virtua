@@ -131,11 +131,11 @@
     (dom/insert-at el (create-element right) index)
 
     (and left (not right))
-    (dom/remove (dom/child-at el index))
+    (dom/remove! (dom/child-at el index))
 
     (changed? left right)
     (let [child (dom/child-at el index)]
-      (dom/remove child)
+      (dom/remove! child)
       (dom/insert-at el (create-element right) index))
 
     (:children right)
@@ -202,7 +202,7 @@
   [virtua-component value parent]
   (let [state (wrap-state value)
         initial-node (apply-state virtua-component @state)]
-    (dom/remove-children parent)
+    (dom/remove-children! parent)
     (add-watch state ::virtua-component
                (fn [_ _ old-state new-state]
                  ; TODO: This should probably use requestAnimationFrame

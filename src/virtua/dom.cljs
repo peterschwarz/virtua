@@ -96,13 +96,18 @@
   [tag]
   (gdom/createDom (name tag)))
 
-(defn remove [el]
+(defn remove! [el]
+  "Removes the given element from the DOM tree."
   (when el
     (gdom/removeNode el)))
 
-(defn remove-children [el]
+(defn remove-children!
+  "Removes all the children from the given element."
+  [el]
   (gdom/removeChildren el))
 
-(defn replace [a b]
+(defn replace!
+  "Replaces the first node with the second."
+  [a b]
   (when (and a b)
     (gdom/replaceNode a b)))
