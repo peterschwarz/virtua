@@ -4,7 +4,7 @@
             [goog.events :as evt])
   (:import [goog.events EventType]))
 
-(def types
+(def ^:private types
   {:on-click (.-CLICK EventType)
    :on-change (.-CHANGE EventType)
    :on-key-up (.-KEYUP EventType)
@@ -20,10 +20,12 @@
    ; TODO: More
    })
 
-(defrecord Handler [key handler])
+(defrecord ^:private Handler [key handler])
 
 (defn configure-event-handlers
-  "Configures event handlers for an object"
+  "Configures event handlers for an object, using the attribute map provided.
+
+  Any attributes in the map that are not event handlers will be ignored."
   [el attributes]
   (doseq [[event handler-fn] attributes]
     (when (types event)
@@ -32,6 +34,9 @@
 
 
 (defn remove-event-handlers
+  "Remove the event handlers based on the attribute map provided.
+
+  Any attributes in the map that are not event handlers will be ignored."
   [el attributes-to-remove]
   (doseq [event (->> (keys attributes-to-remove)
                            (filter types)
@@ -41,6 +46,11 @@
       (obj/remove el event))))
 
 (defn update-event-handlers
+  "Update the event handlers based on the attribute maps provided. The first
+  map contains the event handlers to remove.  The second map should contain the
+  event handlers to add.
+
+  Any attributes in the map that are not event handlers will be ignored."
   [el attributes-to-remove attributes-to-add]
   (remove-event-handlers el attributes-to-remove)
   (configure-event-handlers el attributes-to-add))
