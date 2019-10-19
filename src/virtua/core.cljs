@@ -96,7 +96,6 @@
           (assoc :children (->> children
                                 (map #(apply-state % state))
                                 flatten
-                                #_(remove nil?)
                                 vec))))
 
       (coll? node)
