@@ -19,7 +19,7 @@ as a git dependency.  In `deps.edn`:
 ```clojure
 {:deps  {org.clojure/clojurescript {:mvn/version "1.10.520"}
          virtua {:git/url "https://github.com/peterschwarz/virtua"
-                 :sha "<current master>"}}}
+                 :sha "eb1bbd21e72b5bf8be87cbd14fea0a8de0d652d4"}}}
 ```
 
 Similar usage can be had via Leinigen or boot.
@@ -32,6 +32,9 @@ value. It must return hiccup-style markup.
 For example:
 
 ```clojure
+(ns myapp.main
+  (:require [virtua.core :refer [attach!]]))
+
 (let [app-state (atom {:count 0})
       parent (. js/document (getElementById "app"))]
 (attach!
