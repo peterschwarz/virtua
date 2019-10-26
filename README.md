@@ -7,7 +7,9 @@ A Simple virtual DOM library in pure ClojureScript
 Virtua is an implementation of virtual dom algorithms in pure ClojureScript.
 Originally developed as part of a presentation at
 [Clojure.MN](https://www.clojure.mn) (way back in 2016), this has been expanded
-to be a jumping off point for developing a pure-ClojureScript.
+to be a jumping off point for developing a solution using the standard library,
+in combination with the [Google Closure
+Library](https://google.github.io/closure-library/api/index.html).
 
 ## Usage
 
