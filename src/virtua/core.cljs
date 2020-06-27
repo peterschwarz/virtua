@@ -132,28 +132,40 @@
        (map? left) (map? right)
        (not= (:attributes left) (:attributes right))))
 
+(defn- apply-change!
+  [render-state el left right index]
+  (let [old (and left (dom/child-at el index))
+        new (create-element right)]
+
+    (when-let [on-mount-fn (get-in right [:attributes :virtua/on-mount])]
+      (swap! render-state update-in [::on-mount-fns] conj [on-mount-fn el]))
+
+    (when old
+      (dom/remove! old))
+
+    (dom/insert-at el new index)))
+
 (defn- update-elements
   "Update the elements based on the diff of left and right.  The changes are
   applied to the provided element, which would be considered their parent. The
   provided index would be the starting index within the given element's
   children."
-  [el left right index]
+  [render-state el left right index]
   (cond
     (and (not left) right)
-    (dom/insert-at el (create-element right) index)
+    (apply-change! render-state el left right index)
 
     (and left (not right))
     (dom/remove! (dom/child-at el index))
 
     (changed? left right)
-    (let [child (dom/child-at el index)]
-      (dom/remove! child)
-      (dom/insert-at el (create-element right) index))
+    (apply-change! render-state el left right index)
 
     (:children right)
     (doseq [i (range (max (count (:children left))
                           (count (:children right))))]
       (update-elements
+        render-state
         (dom/child-at el index)
         (get-in left [:children i])
         (get-in right [:children i])
@@ -164,6 +176,17 @@
           child (dom/child-at el index)]
       (dom/update-props child  remove-attrs add-attrs)
       (evts/update-event-handlers child remove-attrs add-attrs))))
+
+(defn- apply-tree-updates
+  [el before after]
+  (let [render-state (atom {})]
+   (update-elements render-state el before after 0)
+
+   ; Call the on-mount fn's in order received.
+   (doseq [[f el] (-> @render-state
+                      ::on-mount-fns
+                      reverse)]
+     (f el))))
 
 (defn- update-tree
   "Update the DOM, using the given virtua tree based on the old state and the
@@ -176,7 +199,7 @@
         after (apply-state virtua-tree new-state)
         [left right same] (diff before after)]
     (when (and left right)
-      (update-elements el before after 0))))
+      (apply-tree-updates el before after))))
 
 (defn- wrap-state
   "Wraps the given state value in an Atom, if necessary."
@@ -219,6 +242,4 @@
                (fn [_ _ old-state new-state]
                  ; TODO: This should probably use requestAnimationFrame
                  (update-tree parent virtua-component old-state new-state)))
-    (dom/append
-      parent
-      (create-element initial-node))))
+    (apply-tree-updates parent nil initial-node)))

@@ -242,3 +242,33 @@
 
           (is (= "text-danger" (css-class p)))
           (is (= "Text" (text-content p))))))))
+
+(deftest test-on-mount
+  (testing "rendering the dom and providing the mounted dom node to a function"
+    (with-container el
+      (let [dom-elements (atom {})]
+        (v/attach!
+          (fn [_] [:div
+                   {:virtua/on-mount #(swap! dom-elements assoc :dom-el %)}
+                   "Test On Mount"])
+          {} ; empty app state
+          el)
+        (let [el (:dom-el @dom-elements)]
+          (is (not (nil? el)))
+          (is (= "div" (and el (-> (.-tagName el)
+                                   clojure.string/lower-case))))))))
+
+  (testing "on-mount functions are called in the order the occur in the tree"
+    (with-container el
+      (let [dom-elements (atom [])]
+        (v/attach!
+          (fn [_]
+            [:div.first
+             {:virtua/on-mount (fn [_] (swap! dom-elements conj :a))}
+             [:div.second
+              {:virtua/on-mount (fn [_] (swap! dom-elements conj :b))}
+              "Test on-mount ordering"]])
+          {} ; empty app state
+          el)
+
+        (is (= [:a :b] @dom-elements))))))
