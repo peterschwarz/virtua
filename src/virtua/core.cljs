@@ -135,15 +135,19 @@
 (defn- apply-change!
   [render-state el left right index]
   (let [old (and left (dom/child-at el index))
-        new (create-element right)]
+        new (and right (create-element right))]
 
     (when-let [on-mount-fn (get-in right [:attributes :virtua/on-mount])]
       (swap! render-state update-in [::on-mount-fns] conj [on-mount-fn el]))
 
     (when old
+      (when-let [on-unmount-fn (get-in left [:attributes :virtua/on-unmount])]
+        (swap! render-state update-in [::on-unmount-fns] conj on-unmount-fn))
+
       (dom/remove! old))
 
-    (dom/insert-at el new index)))
+    (when new
+      (dom/insert-at el new index))))
 
 (defn- update-elements
   "Update the elements based on the diff of left and right.  The changes are
@@ -156,7 +160,7 @@
     (apply-change! render-state el left right index)
 
     (and left (not right))
-    (dom/remove! (dom/child-at el index))
+    (apply-change! render-state el left right index)
 
     (changed? left right)
     (apply-change! render-state el left right index)
@@ -181,6 +185,10 @@
   [el before after]
   (let [render-state (atom {})]
    (update-elements render-state el before after 0)
+
+   ; Call the on-unmount fn's in order recevied.
+   (doseq [f (-> @render-state ::on-unmount-fns reverse)]
+     (f))
 
    ; Call the on-mount fn's in order received.
    (doseq [[f el] (-> @render-state

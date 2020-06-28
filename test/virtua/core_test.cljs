@@ -243,8 +243,8 @@
           (is (= "text-danger" (css-class p)))
           (is (= "Text" (text-content p))))))))
 
-(deftest test-on-mount
-  (testing "rendering the dom and providing the mounted dom node to a function"
+(deftest test-life-cycle
+  (testing "rendering the DOM and providing the mounted DOM node to a function"
     (with-container el
       (let [dom-elements (atom {})]
         (v/attach!
@@ -253,6 +253,7 @@
                    "Test On Mount"])
           {} ; empty app state
           el)
+        (is (= 1 (child-count el)))
         (let [el (:dom-el @dom-elements)]
           (is (not (nil? el)))
           (is (= "div" (and el (-> (.-tagName el)
@@ -271,4 +272,20 @@
           {} ; empty app state
           el)
 
-        (is (= [:a :b] @dom-elements))))))
+        (is (= [:a :b] @dom-elements)))))
+
+  (testing "calling on-unmount when DOM node removed"
+    (with-container el
+      (let [app-state (atom {:display true})
+            lifecycle-events (atom {})]
+        (v/attach!
+          (fn [state]
+            [:div (when (:display state)
+                    [:div.child
+                     {:virtua/on-unmount
+                      #(swap! lifecycle-events assoc :removed true)}])])
+          app-state
+          el)
+        (is (= 1 (child-count el)))
+        (swap! app-state assoc :display false)
+        (is (:removed @lifecycle-events))))))
