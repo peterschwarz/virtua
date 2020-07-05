@@ -13,13 +13,18 @@
 ; limitations under the License.
 {:deps  {org.clojure/clojurescript {:mvn/version "1.10.520"}}
  :paths ["src"]
- :aliases {:build-dev {
-           :extra-deps {com.bhauman/figwheel-main {:mvn/version "0.2.3"}
-                        com.bhauman/rebel-readline-cljs {:mvn/version "0.1.4"}}
-           :extra-paths ["dev" "resources" "test"]
-           :main-opts ["-m" "figwheel.main" "-b" "dev" "-r"]}
-           :test-dev {
-             :extra-deps {com.bhauman/figwheel-main {:mvn/version "0.2.3"}
-                          com.bhauman/rebel-readline-cljs {:mvn/version "0.1.4"}}
-             :extra-paths ["test" "test-resources"]
-             :main-opts ["-m" "figwheel.main" "-b" "test" "-r"]}}}
+
+ :aliases
+ {:build-dev
+  {:extra-deps {com.bhauman/figwheel-main {:mvn/version "0.2.3"}
+                com.bhauman/rebel-readline-cljs {:mvn/version "0.1.4"}}
+   :extra-paths ["dev" "resources" "test"]
+   :main-opts ["-m" "figwheel.main" "-b" "dev" "-r"]}
+
+  :test-dev
+  {:extra-deps {com.bhauman/figwheel-main {:mvn/version "0.2.3"}
+                com.bhauman/rebel-readline-cljs {:mvn/version "0.1.4"}}
+   :extra-paths ["test" "test-resources"]
+   :main-opts ["-m" "figwheel.main" "-b" "test" "-r"]}
+ }
+}
