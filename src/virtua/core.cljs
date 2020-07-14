@@ -12,202 +12,55 @@
 ; See the License for the specific language governing permissions and
 ; limitations under the License.
 (ns virtua.core
-   (:require [virtua.dom :as dom]
+   (:require [clojure.data :refer [diff]]
+             [virtua.dom :as dom]
              [virtua.events :as evts]
-             [clojure.string :refer [join]]
-             [clojure.data :refer [diff]])
-   (:import [goog.ui IdGenerator]))
+             [virtua.tree :as tree]
+             [virtua.render :refer [render]]))
 
+(defn- apply-state [state decl]
+  (->> decl tree/->tree-seq (tree/expand-tree-seq state)))
 
-(defn- primitive? [x]
-  (or (string? x)
-      (number? x)
-      (= (type x) (type true))))
+(defn- update-render-state
+  [render-state event]
+  (let [[evt-type data el] event]
+    (case evt-type
+      :virtua/add
+      (when-let [on-mount-fn (get-in data [1 :virtua/on-mount])]
+        (swap! render-state update-in [::on-mount-fns] conj [on-mount-fn el]))
 
-(defn- unique-id []
-  (.. IdGenerator getInstance getNextUniqueId))
-
-(defn- create-element
-  [node]
-  (when node
-    (cond
-
-      (primitive? node)
-      (dom/create-text (str node))
-
-      (map? node)
-      (let [{:keys [tag attributes children]} node
-            el (dom/create tag)]
-        (when-not (:id attributes)
-          (dom/set-attribute el "id" (unique-id)))
-        (dom/set-props el attributes)
-        (evts/configure-event-handlers el attributes)
-        (->> children
-             (map create-element)
-             (apply dom/append el)))
-
-      :default
-      (dom/create-text (str node)))))
-
-(defn- merge-attr
-  "Merges attributes, with appropriate joining of merge-able attributes.
-  For example, two maps that define :class will merge their value.
-
-  ```
-  (let [a {:class \"foo\"}
-        b {:class \"bar\"}]
-    (merge-attr a b))
-
-  => {:class \"foo bar\"}
-  ```
-  "
-  [a b]
-  (let [class-a (:class a)
-        class-b (:class b)
-        classes (cond
-                  (and class-a class-b) (str class-a " " class-b)
-                  class-a class-a
-                  class-b class-b)]
-    (cond-> (merge (dissoc a :class) (dissoc b :class))
-      classes (assoc :class classes))))
-
-(defn- extract-keyword-attr
-  "Extracts hiccup-style attributes, namely css class and element ids."
-  [node-type]
-  (let [[element & classes] (.split (name node-type) ".")
-        [etype id] (.split element "#")]
-    [(keyword etype)
-     (cond-> nil
-       (not (empty? classes)) (assoc :class (join " " classes))
-       (not (empty? id)) (assoc :id id))]))
-
-(defn apply-state
-  "Applies state to the given node in the virtual DOM.  The resulting node may
-  contain new children, attributes, etc."
-  [node state]
-  (when node
-    (cond
-      (primitive? node)
-      node
-
-      (fn? node) (apply-state (node state) state)
-
-      (vector? node)
-      (let [[node-type & children] node
-            [tag tag-attr] (extract-keyword-attr node-type)
-            has-attr? (map? (first children))
-            attr (if has-attr?
-                   (merge-attr tag-attr (first children))
-                   tag-attr)
-            children (if has-attr? (rest children) children)]
-        (cond-> {:tag tag}
-
-          attr
-          (assoc :attributes attr)
-
-          (not (empty? children))
-          (assoc :children (->> children
-                                (map #(apply-state % state))
-                                flatten
-                                vec))))
-
-      (coll? node)
-      (map #(apply-state % state) node)
-
-      :default
-      node)))
-
-(defn- changed?
-  "Evaluate the two items to see if they have changed tag type or, if primitive,
-  evaluate if the value has changed."
-  [left right]
-  (and left right
-    (or (not= (:tag left) (:tag right))
-        (and (primitive? left) (not= left right)))))
-
-(defn- attr-changed?
-  "Evaluate the two items to see if the attributes have changed."
-  [left right]
-  (and left right
-       (map? left) (map? right)
-       (not= (:attributes left) (:attributes right))))
-
-(defn- apply-change!
-  [render-state el left right index]
-  (let [old (and left (dom/child-at el index))
-        new (and right (create-element right))]
-
-    (when-let [on-mount-fn (get-in right [:attributes :virtua/on-mount])]
-      (swap! render-state update-in [::on-mount-fns] conj [on-mount-fn el]))
-
-    (when old
-      (when-let [on-unmount-fn (get-in left [:attributes :virtua/on-unmount])]
-        (swap! render-state update-in [::on-unmount-fns] conj on-unmount-fn))
-
-      (dom/remove! old))
-
-    (when new
-      (dom/insert-at el new index))))
-
-(defn- update-elements
-  "Update the elements based on the diff of left and right.  The changes are
-  applied to the provided element, which would be considered their parent. The
-  provided index would be the starting index within the given element's
-  children."
-  [render-state el left right index]
-  (cond
-    (and (not left) right)
-    (apply-change! render-state el left right index)
-
-    (and left (not right))
-    (apply-change! render-state el left right index)
-
-    (changed? left right)
-    (apply-change! render-state el left right index)
-
-    (:children right)
-    (doseq [i (range (max (count (:children left))
-                          (count (:children right))))]
-      (update-elements
-        render-state
-        (dom/child-at el index)
-        (get-in left [:children i])
-        (get-in right [:children i])
-        i)))
-
-  (when (attr-changed? left right)
-    (let [[remove-attrs add-attrs _] (diff (:attributes left) (:attributes right))
-          child (dom/child-at el index)]
-      (dom/update-props child  remove-attrs add-attrs)
-      (evts/update-event-handlers child remove-attrs add-attrs))))
+      :virtua/remove
+      (when-let [on-unmount-fn (get-in data [1 :virtua/on-unmount])]
+        (swap! render-state update-in [::on-unmount-fns] conj on-unmount-fn)))))
 
 (defn- apply-tree-updates
-  [el before after]
+  [el changes]
   (let [render-state (atom {})]
-   (update-elements render-state el before after 0)
+    (render el #(update-render-state render-state %) changes)
 
-   ; Call the on-unmount fn's in order recevied.
-   (doseq [f (-> @render-state ::on-unmount-fns reverse)]
-     (f))
+    ; Call the on-unmount fn's in order recevied.
+    (doseq [f (-> @render-state ::on-unmount-fns reverse)]
+      (f))
 
-   ; Call the on-mount fn's in order received.
-   (doseq [[f el] (-> @render-state
-                      ::on-mount-fns
-                      reverse)]
-     (f el))))
+    ; Call the on-mount fn's in order received.
+    (doseq [[f el] (-> @render-state
+                       ::on-mount-fns
+                       reverse)]
+      (f el))))
 
 (defn- update-tree
   "Update the DOM, using the given virtua tree based on the old state and the
   new state."
-  [el virtua-tree old-state new-state]
+  [el decl old-state new-state]
   ; NOTE, this is pretty inefficient, and could presumably could be optimized
   ; by diffing the state, and then walking the virtua tree for effected
   ; elements.
-  (let [before (apply-state virtua-tree old-state)
-        after (apply-state virtua-tree new-state)
-        [left right same] (diff before after)]
-    (when (and left right)
-      (apply-tree-updates el before after))))
+  (let [changes (diff (apply-state old-state decl)
+                      (apply-state new-state decl))
+        [left right same] changes]
+
+    (when (or left right)
+      (apply-tree-updates el changes))))
 
 (defn- wrap-state
   "Wraps the given state value in an Atom, if necessary."
@@ -244,10 +97,10 @@
   as no state modifier methods are provided."
   [virtua-component value parent]
   (let [state (wrap-state value)
-        initial-node (apply-state virtua-component @state)]
+        initial-node (apply-state @state virtua-component)]
     (dom/remove-children! parent)
     (add-watch state ::virtua-component
                (fn [_ _ old-state new-state]
                  ; TODO: This should probably use requestAnimationFrame
                  (update-tree parent virtua-component old-state new-state)))
-    (apply-tree-updates parent nil initial-node)))
+    (apply-tree-updates parent [nil initial-node nil])))
