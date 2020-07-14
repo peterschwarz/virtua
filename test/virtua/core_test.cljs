@@ -15,20 +15,9 @@
   (:require [cljs.test :refer-macros [deftest testing async is are use-fixtures]]
             [virtua.dom :refer [child-at child-count]]
             [virtua.core :as v]
-            [virtua.test-utils :refer-macros [wait with-container]]
-            [goog.dom :as gdom]))
-
-(defn text-content [el]
-  (when el
-    (gdom/getTextContent el)))
-
-(defn tag [el]
-  (when el
-    (.. el -tagName toLowerCase)))
-
-(defn css-class [el]
-  (when el
-    (.. el -className)))
+            [virtua.test-utils
+             :refer [tag text-content css-class]
+             :refer-macros [wait with-container]]))
 
 (deftest test-render-single-element
   (testing "rendering a simple element"
