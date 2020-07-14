@@ -11,7 +11,8 @@
 ; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 ; See the License for the specific language governing permissions and
 ; limitations under the License.
-{:deps  {org.clojure/clojurescript {:mvn/version "1.10.520"}}
+{:deps  {org.clojure/clojurescript {:mvn/version "1.10.520"}
+         org.clojure/core.match {:mvn/version "1.0.0"}}
  :paths ["src"]
 
  :aliases
