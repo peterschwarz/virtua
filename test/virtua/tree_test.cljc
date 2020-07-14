@@ -1,4 +1,4 @@
-; Copyright 2016-2019 Peter Schwarz
+; Copyright 2016-2020 Peter Schwarz
 ;
 ; Licensed under the Apache License, Version 2.0 (the "License");
 ; you may not use this file except in compliance with the License.
@@ -12,83 +12,76 @@
 ; See the License for the specific language governing permissions and
 ; limitations under the License.
 (ns virtua.tree-test
-  (:require [cljs.test :refer-macros [deftest testing async is are use-fixtures]]
-            [virtua.core :as v]))
+  (:require [clojure.test :refer [deftest testing are]]
+            [virtua.tree :as vtree]))
 
+(defn apply-state [state decl]
+  (->> decl vtree/->tree-seq (vtree/expand-tree-seq state)))
 
 (deftest test-intermediate-state
   (testing "Intermediate state transformation"
-    (are [x state y] (= (v/apply-state x state) y)
+    (are [x state y] (= (apply-state state x) y)
       ; primitives
-      "String" {}
-      "String"
+      "String" nil
+      '("String")
 
-      1 {}
-      1
+      1 nil
+      '(1)
 
       ; empty node
-      [:div] {}
-      {:tag :div}
+      [:div] nil
+      '([:div nil 0])
 
       ; children
       [:div "Foo"] {}
-      {:tag :div :children ["Foo"]}
+      '([:div nil 1] "Foo")
 
       ; multiple children
       [:div "foo" "bar"] {}
-      {:tag :div :children ["foo" "bar"]}
+      '([:div nil 2] "foo" "bar")
 
       ; deep children
       [:div [:span "Foo"]] {}
-      {:tag :div :children [{:tag :span
-                             :children ["Foo"]}]}
+      '([:div nil 1] [:span nil 1] "Foo")
 
       [:div [:p "one"] [:p "two"] ] {}
-      {:tag :div :children [{:tag :p
-                             :children ["one"]}
-                            {:tag :p
-                             :children ["two"]}]}
+      '([:div nil 2] [:p nil 1] "one" [:p nil 1] "two")
 
       ; test lazy sequences
       [:div (range 1 4)] {}
-      {:tag :div :children [1 2 3]}
+      '([:div nil 1] [:virtua/seq nil 3] 1 2 3)
 
       ; test state change
       [:div (fn [s] (:text s))] {:text "Test Text"}
-      {:tag :div :children ["Test Text"]}
+      '([:div nil 1] "Test Text")
 
       ; Test attributes
       [:div {:class "foo"} "Test"] {}
-      {:tag :div
-       :attributes {:class "foo"}
-       :children ["Test"]}
+      '([:div {:class "foo"} 1] "Test")
 
       ; test hiccup-like classes
       [:div.foo] {}
-      {:tag :div
-       :attributes {:class "foo"}}
+      '([:div {:class "foo"} 0])
 
       [:div.foo.bar] {}
-      {:tag :div
-       :attributes {:class "foo bar"}}
+      '([:div {:class "foo bar"} 0])
 
       [:div#foo] {}
-      {:tag :div
-       :attributes {:id "foo"}}
+      '([:div {:id "foo"} 0])
 
       [:div#foo.bar] {}
-      {:tag :div
-       :attributes {:id "foo" :class "bar"}}
+      '([:div {:id "foo" :class "bar"} 0])
 
       ; hiccup style with merge of params
       [:div.foo {:class "bar"}] {}
-      {:tag :div
-       :attributes {:class "foo bar"}}
+      '([:div {:class "foo bar"} 0])
 
-      ; Preservs content
+      ; Preserves content
       [:div.foo "Content"] {}
-      {:tag :div
-       :attributes {:class "foo"}
-       :children ["Content"]}
+      '([:div {:class "foo"} 1] "Content")
+
+      ; lists are walked correctly
+      [[:div.a "one"] [:div.b "two"]] {}
+      '([:virtua/seq nil 2] [:div {:class "a"} 1] "one" [:div {:class "b"} 1] "two")
 
       )))
