@@ -11,15 +11,27 @@
 ; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 ; See the License for the specific language governing permissions and
 ; limitations under the License.
-{:deps  {org.clojure/clojurescript {:mvn/version "1.10.520"}}
+{:deps  {org.clojure/clojurescript {:mvn/version "1.10.773"}
+         org.clojure/core.match {:mvn/version "1.0.0"}}
  :paths ["src"]
- :aliases {:build-dev {
-           :extra-deps {com.bhauman/figwheel-main {:mvn/version "0.2.3"}
-                        com.bhauman/rebel-readline-cljs {:mvn/version "0.1.4"}}
-           :extra-paths ["dev" "resources" "test"]
-           :main-opts ["-m" "figwheel.main" "-b" "dev" "-r"]}
-           :test-dev {
-             :extra-deps {com.bhauman/figwheel-main {:mvn/version "0.2.3"}
-                          com.bhauman/rebel-readline-cljs {:mvn/version "0.1.4"}}
-             :extra-paths ["test" "test-resources"]
-             :main-opts ["-m" "figwheel.main" "-b" "test" "-r"]}}}
+
+ :aliases
+ {:build-dev
+  {:extra-deps {com.bhauman/figwheel-main {:mvn/version "0.2.9"}
+                com.bhauman/rebel-readline-cljs {:mvn/version "0.1.4"}}
+   :extra-paths ["dev" "resources" "test"]
+   :main-opts ["-m" "figwheel.main" "-b" "dev" "-r"]}
+
+  :test-dev
+  {:extra-deps {com.bhauman/figwheel-main {:mvn/version "0.2.9"}
+                com.bhauman/rebel-readline-cljs {:mvn/version "0.1.4"}}
+   :extra-paths ["test" "test-resources"]
+   :main-opts ["-m" "figwheel.main" "-b" "test" "-r"]}
+
+  :test
+  {:extra-paths ["test"]
+   :extra-deps {com.cognitect/test-runner {:git/url "https://github.com/cognitect-labs/test-runner.git"
+                                           :sha "209b64504cb3bd3b99ecfec7937b358a879f55c1"}}
+   :main-opts ["-m" "cognitect.test-runner"]}
+ }
+}

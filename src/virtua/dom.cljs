@@ -33,9 +33,12 @@
 
   Note that any event handlers or nil-valued entries are not set."
   [el m]
-  (doseq [[attr v] m]
-    (when (and v (not (event-handler? attr)))
-      (set-attribute el attr v)))
+  (doseq [[attr v] (filter (fn [[k v]]
+                             (and v
+                                  (not (event-handler? k))
+                                  (not= "virtua" (namespace k))))
+                           m)]
+    (set-attribute el attr v))
   el)
 
 (defn remove-props

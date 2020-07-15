@@ -22,3 +22,15 @@
 
 (defn remove-container! [el]
   (gdom/removeNode el))
+
+(defn text-content [el]
+  (when el
+    (gdom/getTextContent el)))
+
+(defn tag [el]
+  (when el
+    (.. el -tagName toLowerCase)))
+
+(defn css-class [el]
+  (when el
+    (.. el -className)))

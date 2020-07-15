@@ -15,20 +15,9 @@
   (:require [cljs.test :refer-macros [deftest testing async is are use-fixtures]]
             [virtua.dom :refer [child-at child-count]]
             [virtua.core :as v]
-            [virtua.test-utils :refer-macros [wait with-container]]
-            [goog.dom :as gdom]))
-
-(defn text-content [el]
-  (when el
-    (gdom/getTextContent el)))
-
-(defn tag [el]
-  (when el
-    (.. el -tagName toLowerCase)))
-
-(defn css-class [el]
-  (when el
-    (.. el -className)))
+            [virtua.test-utils
+             :refer [tag text-content css-class]
+             :refer-macros [wait with-container]]))
 
 (deftest test-render-single-element
   (testing "rendering a simple element"
@@ -242,3 +231,50 @@
 
           (is (= "text-danger" (css-class p)))
           (is (= "Text" (text-content p))))))))
+
+(deftest test-life-cycle
+  (testing "rendering the DOM and providing the mounted DOM node to a function"
+    (with-container el
+      (let [dom-elements (atom {})]
+        (v/attach!
+          (fn [_] [:div
+                   {:virtua/on-mount #(swap! dom-elements assoc :dom-el %)}
+                   "Test On Mount"])
+          {} ; empty app state
+          el)
+        (is (= 1 (child-count el)))
+        (let [el (:dom-el @dom-elements)]
+          (is (not (nil? el)))
+          (is (= "div" (and el (-> (.-tagName el)
+                                   clojure.string/lower-case))))))))
+
+  (testing "on-mount functions are called in the order the occur in the tree"
+    (with-container el
+      (let [dom-elements (atom [])]
+        (v/attach!
+          (fn [_]
+            [:div.first
+             {:virtua/on-mount (fn [_] (swap! dom-elements conj :a))}
+             [:div.second
+              {:virtua/on-mount (fn [_] (swap! dom-elements conj :b))}
+              "Test on-mount ordering"]])
+          {} ; empty app state
+          el)
+
+        (is (= [:a :b] @dom-elements)))))
+
+  (testing "calling on-unmount when DOM node removed"
+    (with-container el
+      (let [app-state (atom {:display true})
+            lifecycle-events (atom {})]
+        (v/attach!
+          (fn [state]
+            [:div (when (:display state)
+                    [:div.child
+                     {:virtua/on-unmount
+                      #(swap! lifecycle-events assoc :removed true)}])])
+          app-state
+          el)
+        (is (= 1 (child-count el)))
+        (swap! app-state assoc :display false)
+        (is (:removed @lifecycle-events))))))
