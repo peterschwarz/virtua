@@ -81,35 +81,58 @@
           (dom/update-props child remove-attrs add-attrs)
           (evts/update-event-handlers child remove-attrs add-attrs))))))
 
+(defn- is-pseudo-tag?
+  [left right same]
+  (letfn [(check [node]
+            (when (vector? node)
+              (= :virtua/seq (first node))))]
+    (or (check left) (check right) (check same))))
+
+(defn- render-step
+  [f element-stack left right same]
+  (if (is-pseudo-tag? left right same)
+    ; pseudo tag, append the appropriate length to the items, but don't
+    ; advance the index.
+    (let [[parent nchildren index] (first element-stack)
+
+          new-stack-top
+          [parent (+ nchildren (child-count left right same) -1) index]]
+      [(cons new-stack-top (rest element-stack)) 1])
+
+    ; standard element
+    (let [[parent nchildren index] (first element-stack)
+          ops (operations left right same)
+          _ (apply-operations f parent index ops)
+          child (dom/child-at parent index)
+
+          next-nchildren (child-count left right same)
+
+          new-stack (cond->> (rest element-stack)
+                      (> nchildren (inc index))
+                      (cons [parent nchildren (inc index)])
+
+                      (and child (> next-nchildren 0))
+                      (cons [child next-nchildren 0]))
+
+          advance (if (and (not child) (> next-nchildren 0))
+                    ; drop old children, if the parent was dropped
+                    next-nchildren
+                    1)]
+      [new-stack advance])))
+
 (defn render
+  ""
   ([parent dom-diff] (render parent identity dom-diff))
   ([parent f dom-diff]
    (loop [[left right same] dom-diff
-          element-stack (cons [parent 1 0] nil)]
+          stack (cons [parent 1 0] nil)]
        (let [node-left (first left)
              node-right (first right)
              node-same (first same)]
          (when (and (or node-left node-right node-same)
-                    (not (empty? element-stack)))
-           (let [[parent nchildren index] (first element-stack)
-                 ops (operations node-left node-right node-same)
-                 _ (apply-operations f parent index ops)
-                 child (dom/child-at parent index)
-
-                 next-nchildren (child-count node-left node-right node-same)
-
-                 new-stack (cond->> (rest element-stack)
-                             (> nchildren (inc index))
-                             (cons [parent nchildren (inc index)])
-
-                             (and child (> next-nchildren 0))
-                             (cons [child next-nchildren 0]))
-
-                 advance (if (and (not child) (> next-nchildren 0))
-                           ; drop old children, if the parent was dropped
-                           next-nchildren
-                           1)]
-
+                    (not (empty? stack)))
+           (let [[new-stack advance]
+                 (render-step f stack node-left node-right node-same)]
              (recur [(nthrest left advance)
                      (nthrest right advance)
                      (nthrest same advance)]

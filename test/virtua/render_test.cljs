@@ -166,6 +166,53 @@
         (is (= "text-danger" (css-class p)))
         (is (= "Text" (text-content p)))))))
 
+(deftest test-render-with-pseudo-tag-seq
+  (testing "render with an pseudo-tag for sequences"
+    (with-container el
+      (r/render
+        el
+        [nil
+         '([:ul nil 1]
+           [:virtua/seq nil 3]
+           [:li nil 1] 1
+           [:li nil 1] 2
+           [:li nil 1] 3)])
+
+      (is (= 1 (child-count el)))
+      (let [ul (child-at el 0)]
+        (is (= "ul" (tag ul)))
+        (is (= 3 (child-count ul)))
+
+        (doseq [i (range 1 4)]
+          (let [li (child-at ul (dec i))]
+            (is (= "li" (tag li)))
+            (is (= (str i) (text-content li))))))))
+
+  (testing "render with an pseudo-tag difference"
+    (with-container el
+      (r/render
+        el
+        [nil
+        '([:ul nil 1] [:virtua/seq nil 0])])
+
+      (is (= 1 (child-count el)))
+      (let [ul (child-at el 0)]
+        (is (= "ul" (tag ul)))
+        (is (= 0 (child-count ul)))
+
+        (r/render
+          el
+          [[nil [nil nil 0]]
+           [nil [nil nil 3] [:li nil 1] 1 [:li nil 1] 2 [:li nil 1] 3]
+           [[:ul nil 1] [:virtua/seq nil]]])
+
+        (is (= 3 (child-count ul)))
+
+        (doseq [i (range 1 4)]
+          (let [li (child-at ul (dec i))]
+            (is (= "li" (tag li)))
+            (is (= (str i) (text-content li)))))))))
+
 (deftest test-render-emit
   (testing "render with an add emit"
     (with-container el
